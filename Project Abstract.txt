@@ -1,0 +1,78 @@
+📌 Problem Statement (Explained)
+
+You need to build a Retrieval-Augmented Generation (RAG) Chatbot that integrates with Google Docs.
+
+The flow is:
+
+1. User signs in with Google account (OAuth 2.0).
+2. The chatbot fetches all Google Docs associated with that account.
+3. User selects which docs to add to the chatbot’s knowledge base.
+4. When the user asks a question in natural language:
+
+   * The chatbot searches within the selected docs (retrieval).
+   * Generates an answer (generation).
+5. If the answer is not found in the docs, the bot:
+
+   * Explicitly says: “Not found in your docs”
+   * Still gives a general answer using its own knowledge.
+
+
+📌 Mandatory Requirements (Simplified)
+
+1. Google OAuth 2.0 → Login system.
+2. Backend in Python → All logic must be written in Python (e.g., FastAPI/Flask/Django).
+3. Fetch & display Google Docs → Show user’s document list.
+4. Select documents to add → User decides which docs the chatbot uses.
+5. RAG pipeline → Retrieve info from selected docs + generate meaningful response.
+6. Fallback behavior → If docs don’t help, fallback to general chatbot knowledge.
+7. Simple chatbot interface → Web-based UI for chatting.
+
+📌 What You Need to Learn (Prerequisites)
+
+To build this project, you’ll need to cover these core skills/tools:
+
+1. APIs & Authentication
+
+* Learn Google OAuth 2.0 (logging in with Google).
+* Work with Google Drive API and Google Docs API (fetch, read documents).
+* Handling API tokens/refresh tokens.
+
+2. Python Backend Development
+
+* Flask or FastAPI (preferred) → for API routes and chatbot backend.
+* Basics of handling requests/responses (REST APIs).
+
+3. Data Retrieval + Processing
+
+* Learn vector databases (like Pinecone, Weaviate, or FAISS) to store document embeddings.
+* Learn how to use embeddings (OpenAI embeddings, Hugging Face sentence transformers).
+* LangChain or LlamaIndex → frameworks that simplify building RAG pipelines.
+
+4. Natural Language Processing (NLP)
+
+* How embeddings work for semantic search.
+* How RAG retrieves chunks from documents.
+* Basics of transformer models for text generation.
+
+5. Frontend (Chat Interface)
+
+* Web technologies: HTML, CSS, JavaScript.
+* Or use a frontend framework like React (optional, but nice).
+* Connecting frontend with backend via API calls.
+
+6. General Software Development Skills
+
+* Git/GitHub for version control.
+* JSON handling (since APIs return JSON).
+* Error handling, debugging.
+
+
+📌 Recommended Learning Path
+
+1. Learn Flask/FastAPI basics.
+2. Learn OAuth 2.0 with Google (login, fetching docs).
+3. Learn how to use Google Drive + Docs API in Python.
+4. Learn embeddings + vector databases (FAISS/Pinecone).
+5. Learn LangChain for RAG chatbot building.
+6. Build a simple chatbot UI (start with Flask + HTML/JS, later upgrade).
+
