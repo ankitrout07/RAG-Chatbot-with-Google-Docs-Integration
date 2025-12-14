@@ -1,0 +1,19 @@
+1. Retrieval & ML (accuracy, speed, cost)
+Hybrid retrieval (sparse + dense): combine BM25/Elastic with FAISS to cut false positives.
+
+Chunking strategies A/B: test semantic vs. heading-aware chunking; measure retrieval recall.
+
+Re-ranker model: run a lightweight cross-encoder on top-k dense hits to improve ranking.
+
+Multi-model strategy / model routing: cheap model for short Qs, stronger model for complex reasoning; cost controls per query.
+
+Answer confidence & calibration: return calibrated confidence scores and thresholded “I don’t know” responses.
+
+Hallucination detector: classifier that flags unsupported claims if retrieval context isn’t present.
+
+Continual learning loop: collect high-quality user-validated Q/A pairs and periodically fine-tune a small model or tune retrieval weights.
+
+Evaluation harness: automated QA tests (ground-truth QA set from your docs) that run nightly showing precision/recall/EM.
+
+
+

@@ -1,0 +1,42 @@
+1. Add Automatic Chunking + Embedding Refresh
+
+Instead of embedding whole documents:
+
+Use LangChain’s TextSplitter:
+
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
+chunks = splitter.split_text(text)
+
+2.Add PDF Table Extraction (Upgrade from PyPDF2)
+
+PyPDF2 is badly outdated.
+
+Replace with PyMuPDF (fast, preserves layout).
+
+3.Add Streaming Responses (Typing Effect Like ChatGPT)
+
+In your backend use:
+
+ChatOpenAI(..., streaming=True)
+
+4.Add Citation-Based RAG (Like ChatGPT with sources)
+
+Modify the backend answer:
+
+return {
+    "answer": answer,
+    "sources": [d.metadata for d in docs]
+}
+
+5. 8. Add UI Upgrades
+
+Your frontend is already beautiful (particle background, animations).
+Level it up:
+
+✔ Add Chat Avatars
+✔ Add Selectable Google Docs List
+✔ Add “Regenerate Answer” button
+✔ Add “Citations” mode
+✔ Add Dark/Light theme persistence

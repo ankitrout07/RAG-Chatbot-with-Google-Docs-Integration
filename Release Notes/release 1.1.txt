@@ -1,0 +1,41 @@
+1. Add Google Docs Picker UI
+
+Instead of redirecting to /fetch_docs raw JSON output, add a UI modal:
+
+Display documents from fetch_google_docs()
+
+Allow selection with checkboxes
+
+A “Load Documents” button pushing doc_ids → /load_docs
+
+This makes the Google Docs flow elegant.
+
+2.Add a Loading Skeleton / Response Animation
+
+Instead of just “Thinking…”, show:
+
+animated skeleton text lines
+
+animated dots
+
+LLM wave animation
+
+AI avatar pulsing
+
+This enhances perceived speed.
+
+3.Add a Chat History Sidebar
+
+A permanent sidebar that stores previous conversations locally (localStorage).
+
+Sidebar features:
+
+View chat history
+
+Switch between past sessions
+
+Rename chats
+
+Delete chats
+
+Your saveChat & copyChat utilities in JS already give a foundation.
