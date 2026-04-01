@@ -1,0 +1,14 @@
+flask
+langchain
+langchain-openai
+langchain-community
+langchain-google-genai
+faiss-cpu
+python-dotenv
+PyPDF2
+pdfplumber
+python-docx
+openai
+google-auth-oauthlib
+google-api-python-client
+werkzeug
