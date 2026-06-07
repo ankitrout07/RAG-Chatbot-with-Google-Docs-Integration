@@ -484,7 +484,43 @@ async function runQuery(userText, options = { showUserMessage: true }){
   if (userInput) userInput.value = '';
 
   const typingId = appendBotTyping();
+  lastAnswerSources = [];
+  if (citationsPanel) citationsPanel.innerHTML = '';
+
+  const useCitations = !!(citationsToggle && citationsToggle.checked);
   const mode = currentMode;
+  
+  // Gather Enterprise Settings
+  const top_k = topKSlider ? parseInt(topKSlider.value, 10) : 4;
+  const threshold = thresholdSlider ? parseFloat(thresholdSlider.value) : 0.65;
+  const temperature = tempSlider ? parseFloat(tempSlider.value) : 0.0;
+  const strategy = promptStrategy ? promptStrategy.value : 'strict';
+  
+  // Collect active indexes
+  const active_docs = [];
+  if (activeIndexList) {
+    const checkboxes = activeIndexList.querySelectorAll('input[type="checkbox"]:checked');
+    checkboxes.forEach(cb => active_docs.push(cb.value));
+  }
+
+  // API keys from session storage / UI
+  const api_keys = {
+    openai: openaiKeyOverride ? openaiKeyOverride.value : '',
+    gemini: geminiKeyOverride ? geminiKeyOverride.value : ''
+  };
+
+  const payload = {
+    query: userText,
+    mode: mode,
+    top_k: top_k,
+    threshold: threshold,
+    temperature: temperature,
+    strategy: strategy,
+    active_docs: active_docs,
+    api_keys: api_keys
+  };
+
+  const startTime = Date.now();
 
   try {
     if (useCitations){
@@ -492,7 +528,7 @@ async function runQuery(userText, options = { showUserMessage: true }){
       const res = await fetch('/ask', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ query: text, mode })
+        body: JSON.stringify(payload)
       });
       removeElementById(typingId);
       if (!res.ok){
@@ -511,7 +547,7 @@ async function runQuery(userText, options = { showUserMessage: true }){
       const res = await fetch('/ask_stream', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ query: text, mode })
+        body: JSON.stringify(payload)
       });
       if (!res.ok || !res.body){
         removeElementById(typingId);
@@ -531,8 +567,6 @@ async function runQuery(userText, options = { showUserMessage: true }){
         const chunk = _decoder.decode(value, { stream: true });
         botEl.textContent += chunk;
         chatBox.scrollTop = chatBox.scrollHeight;
-      }
-      addMessageToCurrentSession({ role: 'assistant', content: botEl.textContent || '' });
       }
       addMessageToCurrentSession({ role: 'assistant', content: botEl.textContent || '' });
     }
