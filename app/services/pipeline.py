@@ -3,6 +3,9 @@ from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
+from langchain_core.documents import Document
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,7 +31,12 @@ def setup_vector_store(doc_texts):
         google_api_key=gemini_key,
     )
     vector_store = FAISS.from_texts(all_chunks, embeddings, metadatas=all_metadatas)
-    return vector_store
+    
+    return {
+        "faiss": vector_store,
+        "chunks": all_chunks,
+        "metadatas": all_metadatas
+    }
 
 def _format_history(history, max_turns: int = 6) -> str:
     """Turn a list of {role, content} dicts into a compact text block."""
@@ -44,19 +52,42 @@ def _format_history(history, max_turns: int = 6) -> str:
             lines.append(f"{prefix}: {content}")
     return "\n".join(lines) if lines else ""
 
-def generate_answer(query, vector_store, history=None, top_k=4, threshold=0.65, temperature=0.0, strategy='strict', active_docs=None, api_keys=None):
-    """Retrieve relevant chunks and ask the Gemini chat model for an answer."""
-    search_kwargs = {"k": top_k, "score_threshold": threshold}
+def generate_answer(query, knowledge_dict, history=None, top_k=4, threshold=0.65, temperature=0.0, strategy='strict', active_docs=None, api_keys=None):
+    """Retrieve relevant chunks using Hybrid Search (FAISS + BM25) and ask the model."""
+    faiss_store = knowledge_dict["faiss"]
+    chunks = knowledge_dict["chunks"]
+    metadatas = knowledge_dict["metadatas"]
+
+    # 1. Prepare BM25 Retriever
+    filtered_docs = []
+    for chunk, metadata in zip(chunks, metadatas):
+        if active_docs and metadata.get("source") not in active_docs:
+            continue
+        filtered_docs.append(Document(page_content=chunk, metadata=metadata))
     
+    # If no documents match the filter, fallback or return empty
+    if not filtered_docs:
+        return {"answer": "No documents match the active filter.", "sources": []}
+    
+    bm25_retriever = BM25Retriever.from_documents(filtered_docs)
+    bm25_retriever.k = top_k
+
+    # 2. Prepare FAISS Retriever
+    search_kwargs = {"k": top_k, "score_threshold": threshold}
     if active_docs:
-        # FAISS supports callable filters
         search_kwargs["filter"] = lambda md: md.get("source") in active_docs
 
-    retriever = vector_store.as_retriever(
+    faiss_retriever = faiss_store.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs=search_kwargs
     )
-    docs = retriever.invoke(query)
+
+    # 3. Ensemble (Reciprocal Rank Fusion)
+    ensemble_retriever = EnsembleRetriever(
+        retrievers=[bm25_retriever, faiss_retriever],
+        weights=[0.5, 0.5]
+    )
+    docs = ensemble_retriever.invoke(query)
 
     context = "\n\n".join(d.page_content for d in docs)
     history_block = _format_history(history)

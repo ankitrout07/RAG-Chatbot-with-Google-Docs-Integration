@@ -9,9 +9,21 @@ from .services.auth import fetch_google_docs, extract_doc_text
 from .services.pipeline import setup_vector_store, generate_answer, generate_answer_general
 from .services.document_service import extract_text_from_file
 
-# Global cache for the vector store and chat histories
+import numpy as np
+from numpy.linalg import norm
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+# Global cache for the vector store, chat histories, and semantic cache
 knowledge_base = None
 conversations = {}
+semantic_cache = []
+
+def cosine_similarity(v1, v2):
+    return np.dot(v1, v2) / (norm(v1) * norm(v2))
+
+def get_embeddings_model(api_keys=None):
+    gemini_key = (api_keys and api_keys.get("gemini")) or os.getenv("GEMINI_API_KEY")
+    return GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=gemini_key)
 
 def _get_session_id():
     """Get or create a session identifier stored in the signed cookie."""
@@ -124,6 +136,22 @@ def ask():
     else:
         if not knowledge_base:
             return jsonify({"answer": "No documents loaded yet."})
+            
+        embeddings = get_embeddings_model(api_keys)
+        try:
+            query_vector = embeddings.embed_query(user_query)
+        except Exception as e:
+            return jsonify({"answer": f"Embedding error: {str(e)}", "sources": []}), 500
+            
+        # Semantic Cache Check
+        for cached in semantic_cache:
+            score = cosine_similarity(query_vector, cached["vector"])
+            if score >= 0.95:
+                result = {"answer": cached["answer"], "sources": [{"source": f"semantic_cache (score: {score:.3f})"}]}
+                history.append({"role": "user", "content": user_query})
+                history.append({"role": "assistant", "content": result["answer"]})
+                return jsonify(result)
+
         result = generate_answer(
             user_query, 
             knowledge_base, 
@@ -135,6 +163,12 @@ def ask():
             active_docs=active_docs,
             api_keys=api_keys
         )
+        
+        if result.get("sources"):
+            semantic_cache.append({
+                "vector": query_vector,
+                "answer": result.get("answer", "")
+            })
         
     answer = result.get("answer", "")
     history.append({"role": "user", "content": user_query})
@@ -164,9 +198,33 @@ def ask_stream():
 
     if mode == 'chatgpt':
         result = generate_answer_general(user_query, history, temperature=temperature, api_keys=api_keys)
+        full_answer = result.get("answer", "")
     else:
         if not knowledge_base:
             return Response("No documents loaded yet.", mimetype="text/plain")
+            
+        embeddings = get_embeddings_model(api_keys)
+        try:
+            query_vector = embeddings.embed_query(user_query)
+        except Exception:
+            return Response("Embedding error", mimetype="text/plain", status=500)
+            
+        # Semantic Cache Check
+        for cached in semantic_cache:
+            score = cosine_similarity(query_vector, cached["vector"])
+            if score >= 0.95:
+                full_answer = cached["answer"]
+                history.append({"role": "user", "content": user_query})
+                history.append({"role": "assistant", "content": full_answer})
+
+                @stream_with_context
+                def generate_chunks_cached():
+                    chunk_size = 64
+                    for i in range(0, len(full_answer), chunk_size):
+                        yield full_answer[i:i+chunk_size]
+                        time.sleep(0.01)
+                return Response(generate_chunks_cached(), mimetype="text/plain")
+
         result = generate_answer(
             user_query, 
             knowledge_base, 
@@ -178,8 +236,14 @@ def ask_stream():
             active_docs=active_docs,
             api_keys=api_keys
         )
+        full_answer = result.get("answer", "")
+        
+        if result.get("sources"):
+            semantic_cache.append({
+                "vector": query_vector,
+                "answer": full_answer
+            })
 
-    full_answer = result.get("answer", "")
     history.append({"role": "user", "content": user_query})
     history.append({"role": "assistant", "content": full_answer})
 
