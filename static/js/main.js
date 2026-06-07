@@ -226,20 +226,25 @@ function elSafe(id){ return document.getElementById(id) || null; }
    --------------- */
 function openChat(){
   if (!chatOverlay) return;
+  // Remove hidden first (sets display back), then trigger opacity transition on next frame
   chatOverlay.classList.remove('hidden');
-  chatOverlay.classList.add('visible');
-  // reset upload status visually if present
+  chatOverlay.removeAttribute('aria-hidden');
+  // rAF ensures display:flex is applied before opacity transition starts
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      chatOverlay.classList.add('visible');
+    });
+  });
   if (uploadStatus) uploadStatus.textContent = '';
-  // seed chat box with welcome message only if empty
   if (chatBox && chatBox.children.length === 0){
     appendBotMessage('🧠 RAG Assistant online. Upload docs to begin (or ask a question).');
   }
-  // focus input
   setTimeout(()=> userInput?.focus(), 300);
 }
 function closeChat(){
   if (!chatOverlay) return;
   chatOverlay.classList.remove('visible');
+  chatOverlay.setAttribute('aria-hidden', 'true');
   setTimeout(()=> chatOverlay.classList.add('hidden'), 350);
 }
 window.openChat = openChat;
@@ -987,19 +992,21 @@ function renderMessagesForSession(session){
   chatBox.innerHTML = '';
   if (!session || !Array.isArray(session.messages)) return;
   for (const msg of session.messages){
-    const role = msg.role === 'user' ? 'user' : 'bot';
+    // Normalize: stored role is 'user' or 'assistant'; map 'assistant' -> 'bot' for CSS
+    const isUser = msg.role === 'user';
+    const roleClass = isUser ? 'user' : 'bot';
     const row = document.createElement('div');
-    row.className = 'chat-row ' + role;
+    row.className = 'chat-row ' + roleClass;
 
     const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble ' + role;
+    bubble.className = 'chat-bubble ' + roleClass;
     bubble.textContent = msg.content || '';
 
     const avatar = document.createElement('div');
-    avatar.className = 'chat-avatar ' + role;
-    avatar.textContent = role === 'user' ? 'You' : 'AI';
+    avatar.className = 'chat-avatar ' + roleClass;
+    avatar.textContent = isUser ? 'You' : 'AI';
 
-    if (role === 'user'){
+    if (isUser){
       row.appendChild(bubble);
       row.appendChild(avatar);
     } else {
