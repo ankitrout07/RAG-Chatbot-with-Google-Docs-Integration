@@ -1323,3 +1323,11 @@ console.log('WayneTech main.js loaded — UI features ready.');
     tokenGaugeLabel.textContent = `${current.toLocaleString()} / ~1M Tokens`;
   }
 })();
+
+/* ---------------
+   CHAT OVERLAY SETTINGS BINDING
+   --------------- */
+const chatSettingsBtn = document.getElementById('chat-settings-btn');
+if (chatSettingsBtn && typeof openSystemSidebar === 'function') {
+  chatSettingsBtn.addEventListener('click', openSystemSidebar);
+}
