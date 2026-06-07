@@ -252,81 +252,85 @@
     <div id="system-sidebar-backdrop" class="system-sidebar-backdrop"></div>
     <aside class="system-sidebar-panel" role="dialog" aria-label="Retrieval and system status">
       <button id="system-sidebar-close" class="icon-btn sidebar-close-btn" type="button" aria-label="Close panel">✖</button>
-      <div class="side-panel-column">
-        <div class="ml-panel">
-          <h2>Retrieval &amp; ML Strategy</h2>
-          <p class="lead">
-            Under the hood, the assistant is designed to balance accuracy, speed and cost.
-            These are some of the retrieval and machine learning ideas we plan to use and iterate on.
-          </p>
-          <div class="ml-grid">
-            <div class="ml-card">
-              <h3>Hybrid retrieval (sparse + dense)</h3>
-              <p>
-                Combine traditional keyword search (BM25 / Elastic-style) with dense vector search (FAISS)
-                so we catch both exact matches and semantic matches, while reducing irrelevant hits.
-              </p>
+      <div class="side-panel-column enterprise-settings">
+        <div class="settings-header">
+          <h2>Engine Settings</h2>
+          <p>Optimize retrieval and inference hyperparameters</p>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="text-cyan-400">Retrieval Tuning</h3>
+          <div class="setting-item">
+            <div class="setting-labels">
+              <label for="top-k-slider">Top-K Context Chunks</label>
+              <span id="top-k-val" class="val-cyan">4</span>
             </div>
-            <div class="ml-card">
-              <h3>Smart chunking strategies</h3>
-              <p>
-                Experiment with different ways of splitting documents (semantic chunks vs. heading-aware
-                chunks) and measure which approach gives the best recall for real user questions.
-              </p>
+            <input type="range" id="top-k-slider" min="1" max="10" value="4" class="slider slider-cyan">
+          </div>
+          <div class="setting-item">
+            <div class="setting-labels">
+              <label for="threshold-slider">Score Threshold</label>
+              <span id="threshold-val" class="val-cyan">0.65</span>
             </div>
-            <div class="ml-card">
-              <h3>Re-ranker on top of retrieval</h3>
-              <p>
-                After finding the top-k chunks with embeddings, run a lightweight re-ranker model to sort
-                them by relevance so the model always sees the most useful context first.
-              </p>
+            <input type="range" id="threshold-slider" min="0.0" max="1.0" step="0.05" value="0.65" class="slider slider-cyan">
+          </div>
+          <div class="setting-item">
+            <label for="chunk-strategy">Chunk Strategy Override</label>
+            <select id="chunk-strategy" class="dropdown">
+              <option value="standard">Standard (Recursive Split)</option>
+              <option value="parent-child">Parent-Child Expansion</option>
+              <option value="hybrid">Dense + Keyword Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="text-purple-400">LLM Generation</h3>
+          <div class="setting-item">
+            <div class="setting-labels">
+              <label for="temp-slider">Temperature</label>
+              <span id="temp-val" class="val-purple">0.0</span>
             </div>
-            <div class="ml-card">
-              <h3>Multi-model routing</h3>
-              <p>
-                Use a cheaper, fast model for short and simple questions, and automatically route harder
-                reasoning tasks to a stronger model, keeping quality high while controlling cost.
-              </p>
+            <input type="range" id="temp-slider" min="0.0" max="1.0" step="0.1" value="0.0" class="slider slider-purple">
+          </div>
+          <div class="setting-item">
+            <label for="prompt-strategy">System Prompt Persona</label>
+            <select id="prompt-strategy" class="dropdown">
+              <option value="strict">Strict RAG (Zero Hallucination)</option>
+              <option value="creative">Creative Synthesizer</option>
+              <option value="code">Technical Code Reviewer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3 class="text-emerald-400">Context Management</h3>
+          <div class="setting-item">
+            <label>Live Context Token Gauge</label>
+            <div class="token-gauge-wrap">
+              <div id="token-gauge-bar" class="token-gauge-bar" style="width:0%"></div>
             </div>
-            <div class="ml-card">
-              <h3>Answer confidence &amp; "I don&apos;t know"</h3>
-              <p>
-                Estimate how well the retrieved context supports the answer and return calibrated
-                confidence scores. If confidence is low, the assistant will say it doesn&apos;t know
-                instead of guessing.
-              </p>
-            </div>
-            <div class="ml-card">
-              <h3>Hallucination detection</h3>
-              <p>
-                Add a classifier that checks whether key claims in the answer are grounded in the
-                retrieved context and flags or down-ranks answers that look unsupported.
-              </p>
-            </div>
-            <div class="ml-card">
-              <h3>Continual learning loop</h3>
-              <p>
-                Collect high-quality, user-validated Q&amp;A pairs and use them to periodically
-                fine-tune a smaller model or adjust retrieval weights so the system improves over time.
-              </p>
-            </div>
-            <div class="ml-card">
-              <h3>Evaluation harness</h3>
-              <p>
-                Maintain a ground-truth QA set built from your documents and run automated tests
-                (precision, recall, exact match) on a schedule to catch regressions early.
-              </p>
+            <small id="token-gauge-label">0 / ~1M Tokens</small>
+          </div>
+          <div class="setting-item active-indexes">
+            <label>Active Indexes (Filter Search)</label>
+            <div id="active-index-list" class="active-index-list">
+              <p class="empty-list">No documents loaded.</p>
             </div>
           </div>
         </div>
 
-        <div class="system-health">
-          <div class="system-health-header">
-            <span class="system-health-title">System health</span>
-            <button id="health-refresh" class="ghost-btn small" type="button">Refresh</button>
+        <div class="settings-group system-health">
+          <h3 class="text-rose-400">Core Infrastructure</h3>
+          <div class="setting-item">
+            <label>API Key Overrides (Session)</label>
+            <input type="password" id="openai-key-override" placeholder="OpenAI API Key" class="text-input mb-2">
+            <input type="password" id="gemini-key-override" placeholder="Gemini API Key" class="text-input">
           </div>
-          <div id="health-status" class="health-status">
-            <!-- filled by JS using /health endpoint -->
+          <div class="setting-item metrics">
+            <div class="metric-row"><span>FAISS State:</span> <span id="faiss-state">Volatile</span></div>
+            <div class="metric-row"><span>Google OAuth:</span> <span id="oauth-state">Checking...</span></div>
+            <div class="metric-row"><span>Avg Retrieval:</span> <span id="avg-latency">-- ms</span></div>
           </div>
         </div>
       </div>

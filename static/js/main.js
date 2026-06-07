@@ -61,6 +61,26 @@ const docsModalStatus = document.getElementById('docs-modal-status');
 const healthStatusEl = document.getElementById('health-status');
 const healthRefreshBtn = document.getElementById('health-refresh');
 
+// Enterprise Settings UI
+const topKSlider = document.getElementById('top-k-slider');
+const topKVal = document.getElementById('top-k-val');
+const thresholdSlider = document.getElementById('threshold-slider');
+const thresholdVal = document.getElementById('threshold-val');
+const tempSlider = document.getElementById('temp-slider');
+const tempVal = document.getElementById('temp-val');
+const chunkStrategy = document.getElementById('chunk-strategy');
+const promptStrategy = document.getElementById('prompt-strategy');
+
+const tokenGaugeBar = document.getElementById('token-gauge-bar');
+const tokenGaugeLabel = document.getElementById('token-gauge-label');
+const activeIndexList = document.getElementById('active-index-list');
+
+const openaiKeyOverride = document.getElementById('openai-key-override');
+const geminiKeyOverride = document.getElementById('gemini-key-override');
+const faissState = document.getElementById('faiss-state');
+const oauthState = document.getElementById('oauth-state');
+const avgLatency = document.getElementById('avg-latency');
+
 const yearEl = document.getElementById('year');
 
 // simple busy flag so we don't spam the backend
@@ -375,6 +395,10 @@ window.closeChat = closeChat;
           const data = JSON.parse(xhr.responseText);
           if (uploadStatus) uploadStatus.textContent = `✅ ${data.message || 'Upload complete.'}`;
           if (progressBar) progressBar.style.width = '100%';
+          // register loaded files to the index list
+          if (window.addDocumentToIndex) {
+            for (const f of files) window.addDocumentToIndex(f.name);
+          }
           // optional: display retrieved snippet placeholders
           if (retrievedEl) retrievedEl.textContent = '(Documents loaded. Ready for queries.)';
         } catch(err){
@@ -440,30 +464,26 @@ if (modeToggle) {
 
 async function sendMessage(){
   if (!userInput || !chatBox) return;
-  if (isChatBusy) return; // avoid multiple parallel sends
   const text = userInput.value?.trim();
   if (!text) return;
-  userInput.value = '';
   await runQuery(text, { showUserMessage: true });
 }
 
-async function runQuery(text, { showUserMessage } = { showUserMessage: true }){
-  if (!chatBox) return;
-  if (isChatBusy) return;
+async function runQuery(userText, options = { showUserMessage: true }){
+  if (!userText || isChatBusy) return;
+
   isChatBusy = true;
   if (sendBtn) sendBtn.disabled = true;
   if (regenBtn) regenBtn.disabled = true;
 
-  if (showUserMessage) {
-    appendUserMessage(text);
-    addMessageToCurrentSession({ role: 'user', content: text });
+  if (options.showUserMessage){
+    appendUserMessage(userText);
+    addMessageToCurrentSession({ role: 'user', content: userText });
+    lastUserQuestion = userText;
   }
-  const typingId = appendBotTyping();
-  lastUserQuestion = text;
-  lastAnswerSources = [];
-  if (citationsPanel) citationsPanel.innerHTML = '';
+  if (userInput) userInput.value = '';
 
-  const useCitations = !!(citationsToggle && citationsToggle.checked);
+  const typingId = appendBotTyping();
   const mode = currentMode;
 
   try {
@@ -513,7 +533,12 @@ async function runQuery(text, { showUserMessage } = { showUserMessage: true }){
         chatBox.scrollTop = chatBox.scrollHeight;
       }
       addMessageToCurrentSession({ role: 'assistant', content: botEl.textContent || '' });
+      }
+      addMessageToCurrentSession({ role: 'assistant', content: botEl.textContent || '' });
     }
+
+    const latency = Date.now() - startTime;
+    if (avgLatency) avgLatency.textContent = latency + ' ms';
 
   } catch (err){
     removeElementById(typingId);
@@ -857,6 +882,14 @@ if (docsModalLoadBtn){
       }
       const message = json && json.message ? json.message : 'Google Docs loaded successfully.';
       if (retrievedEl) retrievedEl.textContent = message;
+      if (window.addDocumentToIndex) {
+        checkboxes.forEach(cb => {
+          if (cb.checked) {
+            const name = cb.nextSibling ? cb.nextSibling.textContent.trim() : cb.dataset.docId;
+            window.addDocumentToIndex(name || cb.dataset.docId);
+          }
+        });
+      }
       closeDocsModal();
     } catch (err){
       console.error('Failed to POST /load_docs', err);
@@ -1205,3 +1238,54 @@ window.sendMessage = sendMessage;
 
 /* Good to go! */
 console.log('WayneTech main.js loaded — UI features ready.');
+
+/* ---------------
+   ENTERPRISE SIDEBAR BINDINGS
+   --------------- */
+(function setupEnterpriseSidebar() {
+  if (topKSlider && topKVal) topKSlider.addEventListener('input', e => topKVal.textContent = e.target.value);
+  if (thresholdSlider && thresholdVal) thresholdSlider.addEventListener('input', e => thresholdVal.textContent = parseFloat(e.target.value).toFixed(2));
+  if (tempSlider && tempVal) tempSlider.addEventListener('input', e => tempVal.textContent = parseFloat(e.target.value).toFixed(1));
+
+  // Expose a global function to add documents to the active index list
+  window.addDocumentToIndex = function(docName) {
+    if (!activeIndexList) return;
+    const emptyMsg = activeIndexList.querySelector('.empty-list');
+    if (emptyMsg) emptyMsg.remove();
+    
+    // Check if already exists
+    const existing = activeIndexList.querySelector(`input[value="${docName}"]`);
+    if (existing) return;
+
+    const label = document.createElement('label');
+    label.className = 'index-checkbox-item';
+    
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = docName;
+    cb.checked = true; // Default checked when loaded
+    
+    const txt = document.createTextNode(' ' + docName);
+    
+    label.appendChild(cb);
+    label.appendChild(txt);
+    activeIndexList.appendChild(label);
+    
+    // Update token gauge roughly
+    updateTokenGauge(docName.length * 20); // very rough estimate per file for UI effect
+  };
+  
+  function updateTokenGauge(addTokens) {
+    if (!tokenGaugeBar || !tokenGaugeLabel) return;
+    let current = parseInt(tokenGaugeBar.dataset.tokens || '0', 10);
+    current += addTokens;
+    tokenGaugeBar.dataset.tokens = current;
+    
+    // Assume 1M max context window for Gemini
+    const maxTokens = 1000000;
+    const pct = Math.min((current / maxTokens) * 100, 100);
+    
+    tokenGaugeBar.style.width = pct + '%';
+    tokenGaugeLabel.textContent = `${current.toLocaleString()} / ~1M Tokens`;
+  }
+})();

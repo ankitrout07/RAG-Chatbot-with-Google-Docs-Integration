@@ -105,6 +105,14 @@ def ask():
     user_query = data.get('query', '')
     mode = data.get('mode', 'rag')
     
+    # Granular parameters
+    top_k = data.get('top_k', 4)
+    threshold = data.get('threshold', 0.65)
+    temperature = data.get('temperature', 0.0)
+    strategy = data.get('strategy', 'strict')
+    active_docs = data.get('active_docs', [])
+    api_keys = data.get('api_keys', {})
+
     if not user_query:
         return jsonify({"answer": "No query provided."}), 400
 
@@ -112,11 +120,21 @@ def ask():
     history = conversations.setdefault(session_id, [])
 
     if mode == 'chatgpt':
-        result = generate_answer_general(user_query, history)
+        result = generate_answer_general(user_query, history, temperature=temperature, api_keys=api_keys)
     else:
         if not knowledge_base:
             return jsonify({"answer": "No documents loaded yet."})
-        result = generate_answer(user_query, knowledge_base, history)
+        result = generate_answer(
+            user_query, 
+            knowledge_base, 
+            history,
+            top_k=top_k,
+            threshold=threshold,
+            temperature=temperature,
+            strategy=strategy,
+            active_docs=active_docs,
+            api_keys=api_keys
+        )
         
     answer = result.get("answer", "")
     history.append({"role": "user", "content": user_query})
@@ -129,6 +147,14 @@ def ask_stream():
     data = request.get_json(silent=True) or {}
     user_query = data.get('query', '')
     mode = data.get('mode', 'rag')
+
+    # Granular parameters
+    top_k = data.get('top_k', 4)
+    threshold = data.get('threshold', 0.65)
+    temperature = data.get('temperature', 0.0)
+    strategy = data.get('strategy', 'strict')
+    active_docs = data.get('active_docs', [])
+    api_keys = data.get('api_keys', {})
     
     if not user_query:
         return Response("No query provided.", mimetype="text/plain", status=400)
@@ -137,11 +163,21 @@ def ask_stream():
     history = conversations.setdefault(session_id, [])
 
     if mode == 'chatgpt':
-        result = generate_answer_general(user_query, history)
+        result = generate_answer_general(user_query, history, temperature=temperature, api_keys=api_keys)
     else:
         if not knowledge_base:
             return Response("No documents loaded yet.", mimetype="text/plain")
-        result = generate_answer(user_query, knowledge_base, history)
+        result = generate_answer(
+            user_query, 
+            knowledge_base, 
+            history,
+            top_k=top_k,
+            threshold=threshold,
+            temperature=temperature,
+            strategy=strategy,
+            active_docs=active_docs,
+            api_keys=api_keys
+        )
 
     full_answer = result.get("answer", "")
     history.append({"role": "user", "content": user_query})
