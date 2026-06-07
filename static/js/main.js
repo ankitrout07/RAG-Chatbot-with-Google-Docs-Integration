@@ -658,6 +658,18 @@ window.handleKey = handleKey;
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
 
+  recognition.addEventListener('start', () => {
+    const voiceWaves = document.getElementById('voice-waves');
+    if (voiceWaves) voiceWaves.classList.remove('hidden');
+    if (micBtn) micBtn.style.boxShadow = '0 0 15px var(--accent)';
+  });
+
+  recognition.addEventListener('end', () => {
+    const voiceWaves = document.getElementById('voice-waves');
+    if (voiceWaves) voiceWaves.classList.add('hidden');
+    if (micBtn) micBtn.style.boxShadow = '';
+  });
+
   recognition.addEventListener('result', (e) => {
     const transcript = e.results?.[0]?.[0]?.transcript;
     if (transcript && userInput) {
@@ -1149,6 +1161,40 @@ if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 /* expose sendMessage so inline onclicks work */
 window.sendMessage = sendMessage;
+
+/* ---------------
+   MOUSE SPOTLIGHT GLOW TRACKER
+   --------------- */
+(function mouseSpotlight() {
+  const glow = document.getElementById('mouse-glow');
+  if (!glow) return;
+  
+  window.addEventListener('mousemove', (e) => {
+    glow.style.opacity = '1';
+    glow.style.left = e.clientX + 'px';
+    glow.style.top = e.clientY + 'px';
+  }, { passive: true });
+  
+  document.addEventListener('mouseleave', () => {
+    glow.style.opacity = '0';
+  });
+})();
+
+/* ---------------
+   TECH CARD DYNAMIC GLOW EFFECT
+   --------------- */
+(function techCardGlow() {
+  const cards = document.querySelectorAll('.tech-card');
+  cards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    }, { passive: true });
+  });
+})();
 
 /* Good to go! */
 console.log('WayneTech main.js loaded — UI features ready.');

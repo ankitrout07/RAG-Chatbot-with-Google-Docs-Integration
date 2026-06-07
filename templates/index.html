@@ -4,9 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RAG Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/body.css') }}">
 </head>
 <body>
+  <!-- Interactive Mouse Follow Glow -->
+  <div id="mouse-glow" class="mouse-glow" aria-hidden="true"></div>
+
+  <!-- Decorative Background Blur Blobs -->
+  <div class="bg-blob blob-1" aria-hidden="true"></div>
+  <div class="bg-blob blob-2" aria-hidden="true"></div>
+  <div class="bg-blob blob-3" aria-hidden="true"></div>
+
   <!-- Background canvas -->
   <canvas id="bgCanvas" aria-hidden="true"></canvas>
 
@@ -203,9 +214,14 @@
           <div id="citations-panel" class="citations-panel" aria-live="polite"></div>
 
           <!-- input -->
-          <div class="input-area">
-            <input id="user-input" type="text" placeholder="Ask me anything..." onkeypress="handleKey(event)" autocomplete="off" />
-            <button id="send-btn" class="primary-btn" onclick="sendMessage()">Send</button>
+          <div class="input-area-wrap">
+            <div id="voice-waves" class="voice-waves hidden" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="input-area">
+              <input id="user-input" type="text" placeholder="Ask me anything..." onkeypress="handleKey(event)" autocomplete="off" />
+              <button id="send-btn" class="primary-btn" onclick="sendMessage()">Send</button>
+            </div>
           </div>
         </div>
       </div>
