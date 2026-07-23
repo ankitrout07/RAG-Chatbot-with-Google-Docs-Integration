@@ -1,4 +1,5 @@
 import os
+import pickle
 from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -10,8 +11,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def setup_vector_store(doc_texts):
-    """Create a FAISS vector store from raw document texts."""
+def setup_vector_store(doc_texts, vector_store_dir="vectorstore"):
+    """Create a FAISS vector store from raw document texts and save it."""
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
 
     all_chunks = []
@@ -32,11 +33,41 @@ def setup_vector_store(doc_texts):
     )
     vector_store = FAISS.from_texts(all_chunks, embeddings, metadatas=all_metadatas)
     
+    os.makedirs(vector_store_dir, exist_ok=True)
+    vector_store.save_local(vector_store_dir)
+    with open(os.path.join(vector_store_dir, "hybrid_data.pkl"), "wb") as f:
+        pickle.dump({"chunks": all_chunks, "metadatas": all_metadatas}, f)
+    
     return {
         "faiss": vector_store,
         "chunks": all_chunks,
         "metadatas": all_metadatas
     }
+
+def load_vector_store(vector_store_dir="vectorstore"):
+    """Load the FAISS vector store and hybrid search data from disk."""
+    if not os.path.exists(vector_store_dir) or not os.path.exists(os.path.join(vector_store_dir, "hybrid_data.pkl")):
+        return None
+        
+    try:
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=gemini_key,
+        )
+        vector_store = FAISS.load_local(vector_store_dir, embeddings, allow_dangerous_deserialization=True)
+        
+        with open(os.path.join(vector_store_dir, "hybrid_data.pkl"), "rb") as f:
+            data = pickle.load(f)
+            
+        return {
+            "faiss": vector_store,
+            "chunks": data["chunks"],
+            "metadatas": data["metadatas"]
+        }
+    except Exception as e:
+        print(f"Error loading vector store: {e}")
+        return None
 
 def _format_history(history, max_turns: int = 6) -> str:
     """Turn a list of {role, content} dicts into a compact text block."""

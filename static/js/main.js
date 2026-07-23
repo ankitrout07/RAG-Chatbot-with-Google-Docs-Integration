@@ -558,6 +558,7 @@ async function runQuery(userText, options = { showUserMessage: true }){
       // Replace "Thinking..." with a live-updating bot message
       removeElementById(typingId);
       const botEl = appendBotMessage('');
+      let accumulatedText = '';
 
       const reader = res.body.getReader();
       while (true){
@@ -565,10 +566,15 @@ async function runQuery(userText, options = { showUserMessage: true }){
         if (done) break;
         if (!value) continue;
         const chunk = _decoder.decode(value, { stream: true });
-        botEl.textContent += chunk;
+        accumulatedText += chunk;
+        if (window.marked && window.DOMPurify) {
+          botEl.innerHTML = window.DOMPurify.sanitize(window.marked.parse(accumulatedText));
+        } else {
+          botEl.textContent = accumulatedText;
+        }
         chatBox.scrollTop = chatBox.scrollHeight;
       }
-      addMessageToCurrentSession({ role: 'assistant', content: botEl.textContent || '' });
+      addMessageToCurrentSession({ role: 'assistant', content: accumulatedText });
     }
 
     const latency = Date.now() - startTime;
@@ -624,8 +630,12 @@ function appendBotMessage(text){
   avatar.textContent = 'AI';
 
   const bubble = document.createElement('div');
-  bubble.className = 'chat-bubble bot';
-  bubble.textContent = text;
+  bubble.className = 'chat-bubble bot markdown-body';
+  if (window.marked && window.DOMPurify && text) {
+    bubble.innerHTML = window.DOMPurify.sanitize(window.marked.parse(text));
+  } else {
+    bubble.textContent = text;
+  }
 
   row.appendChild(avatar);
   row.appendChild(bubble);

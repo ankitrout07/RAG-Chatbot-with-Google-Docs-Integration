@@ -1299,6 +1299,52 @@ body.light .bg-blob {
   box-shadow: var(--shadow-sm);
 }
 
+/* Markdown styling inside chat bubbles */
+.markdown-body {
+  font-family: var(--font-body);
+}
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.markdown-body pre {
+  background: var(--card-hover);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+}
+.markdown-body code {
+  font-family: monospace;
+  background: var(--card-hover);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+.markdown-body ul, .markdown-body ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+.markdown-body th {
+  background: var(--card-hover);
+}
+
 /* Chat bubble typing states */
 .chat-bubble.typing {
   position: relative;

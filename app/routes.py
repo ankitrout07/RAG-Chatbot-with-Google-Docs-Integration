@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 from openai import RateLimitError
 
 from .services.auth import fetch_google_docs, extract_doc_text
-from .services.pipeline import setup_vector_store, generate_answer, generate_answer_general
+from .services.pipeline import setup_vector_store, generate_answer, generate_answer_general, load_vector_store
 from .services.document_service import extract_text_from_file
 
 import numpy as np
@@ -14,7 +14,7 @@ from numpy.linalg import norm
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 # Global cache for the vector store, chat histories, and semantic cache
-knowledge_base = None
+knowledge_base = load_vector_store()
 conversations = {}
 semantic_cache = []
 
